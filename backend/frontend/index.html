@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AegisVision – DualShield Interface</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --bg-void: #02020f;
+    --bg-deep: #050516;
+    --bg-panel: rgba(8, 8, 35, 0.85);
+    --bg-glass: rgba(15, 15, 60, 0.4);
+    --neon-blue: #00d4ff;
+    --neon-purple: #b200ff;
+    --neon-cyan: #00ffe7;
+    --neon-pink: #ff006e;
+    --neon-green: #00ff9f;
+    --neon-amber: #ffb800;
+    --text-primary: #e8f4ff;
+    --text-secondary: #8899cc;
+    --text-dim: #445577;
+    --border-glow: rgba(0, 212, 255, 0.3);
+    --border-hot: rgba(178, 0, 255, 0.5);
+    --shadow-blue: 0 0 20px rgba(0,212,255,0.4), 0 0 60px rgba(0,212,255,0.1);
+    --shadow-purple: 0 0 20px rgba(178,0,255,0.4), 0 0 60px rgba(178,0,255,0.1);
+    --font-display: 'Orbitron', monospace;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-body: 'Exo 2', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 2px; }
+
+  /* ─── GRID BG ─── */
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ─── SCANLINE ─── */
+  .scanline {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+    );
+  }
+
+  /* ─── PARTICLE FIELD ─── */
+  .particle-field {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: drift linear infinite;
+    opacity: 0;
+  }
+  @keyframes drift {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(-10vh) translateX(var(--dx)); opacity: 0; }
+  }
+
+  /* ─── MAIN CONTENT ─── */
+  .app-root { position: relative; z-index: 2; min-height: 100vh; }
+
+  /* ─── LANDING PAGE ─── */
+  .landing {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+
+  .landing-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    animation: orbPulse 4s ease-in-out infinite alternate;
+  }
+  .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,212,255,0.15), transparent); top: -100px; right: -100px; }
+  .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(178,0,255,0.15), transparent); bottom: -100px; left: -100px; animation-delay: 2s; }
+  .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(0,255,231,0.08), transparent); top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  @keyframes orbPulse { from { opacity: 0.5; transform: scale(1); } to { opacity: 1; transform: scale(1.2); } }
+
+  .landing-content { position: relative; text-align: center; padding: 2rem; }
+
+  .aegis-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    border: 1px solid var(--border-glow);
+    padding: 0.4rem 1rem; border-radius: 20px;
+    font-family: var(--font-mono); font-size: 0.7rem; color: var(--neon-blue);
+    letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 2rem;
+    background: rgba(0,212,255,0.05);
+    animation: fadeSlideDown 0.8s ease forwards;
+    opacity: 0;
+  }
+  @keyframes fadeSlideDown { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(-20px); } }
+
+  .landing-title {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 10vw, 8rem);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    line-height: 0.9;
+    background: linear-gradient(135deg, #fff 0%, var(--neon-blue) 40%, var(--neon-purple) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: fadeSlideDown 0.8s 0.2s ease forwards; opacity: 0;
+    filter: drop-shadow(0 0 40px rgba(0,212,255,0.5));
+  }
+
+  .landing-sub {
+    font-family: var(--font-mono);
+    font-size: clamp(0.8rem, 2vw, 1rem);
+    color: var(--text-secondary);
+    letter-spacing: 4px;
+    margin: 1.5rem 0 0.5rem;
+    animation: fadeSlideDown 0.8s 0.4s ease forwards; opacity: 0;
+  }
+
+  .landing-tagline {
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    color: var(--neon-cyan);
+    font-weight: 300;
+    margin-bottom: 3rem;
+    animation: fadeSlideDown 0.8s 0.6s ease forwards; opacity: 0;
+    text-shadow: 0 0 20px rgba(0,255,231,0.5);
+  }
+
+  .btn-enter {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 1.1rem 3rem;
+    border: none; cursor: pointer;
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    color: #fff;
+    border-radius: 4px;
+    animation: fadeSlideDown 0.8s 0.8s ease forwards; opacity: 0;
+    transition: all 0.3s ease;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .btn-enter::before {
+    content: '';
+    position: absolute; inset: -2px;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    z-index: -1; filter: blur(15px); opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .btn-enter:hover { transform: scale(1.05); box-shadow: var(--shadow-blue); }
+  .btn-enter:hover::before { opacity: 1; }
+
+  .landing-stats {
+    display: flex; gap: 3rem; margin-top: 4rem; justify-content: center;
+    animation: fadeSlideDown 0.8s 1s ease forwards; opacity: 0;
+  }
+  .stat { text-align: center; }
+  .stat-val { font-family: var(--font-display); font-size: 1.8rem; color: var(--neon-blue); font-weight: 700; }
+  .stat-lbl { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-dim); letter-spacing: 2px; }
+
+  /* ─── LOGIN ─── */
+  .login-screen {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem;
+  }
+
+  .login-card {
+    width: 100%; max-width: 420px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 2.5rem;
+    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-blue);
+    animation: cardReveal 0.6s ease forwards;
+  }
+  @keyframes cardReveal {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .login-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem; font-size: 1.8rem;
+    box-shadow: var(--shadow-blue);
+    animation: iconSpin 3s linear infinite;
+  }
+  @keyframes iconSpin {
+    0% { box-shadow: 0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,212,255,0.2); }
+    50% { box-shadow: 0 0 20px rgba(178,0,255,0.6), 0 0 40px rgba(178,0,255,0.2); }
+    100% { box-shadow: 0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,212,255,0.2); }
+  }
+
+  .login-title { font-family: var(--font-display); font-size: 1.4rem; text-align: center; margin-bottom: 0.3rem; color: #fff; letter-spacing: 2px; }
+  .login-sub { font-family: var(--font-mono); font-size: 0.7rem; text-align: center; color: var(--text-dim); letter-spacing: 3px; margin-bottom: 2rem; }
+
+  .field-group { margin-bottom: 1.2rem; }
+  .field-label { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 2px; color: var(--neon-blue); margin-bottom: 0.5rem; display: block; text-transform: uppercase; }
+  .field-input {
+    width: 100%; padding: 0.8rem 1rem;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid var(--border-glow);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: var(--font-mono); font-size: 0.9rem;
+    outline: none; transition: all 0.2s;
+  }
+  .field-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,212,255,0.2); background: rgba(0,212,255,0.08); }
+  .field-input::placeholder { color: var(--text-dim); }
+
+  .btn-login {
+    width: 100%; padding: 0.9rem;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    border: none; border-radius: 4px;
+    color: #fff; cursor: pointer;
+    font-family: var(--font-display); font-size: 0.85rem; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    transition: all 0.3s; margin-top: 0.5rem;
+  }
+  .btn-login:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: var(--shadow-blue); }
+  .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .init-text {
+    font-family: var(--font-mono); font-size: 0.7rem; color: var(--neon-cyan);
+    text-align: center; margin-top: 1rem; letter-spacing: 2px;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ─── TOP NAV ─── */
+  .topnav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(2, 2, 15, 0.95);
+    border-bottom: 1px solid var(--border-glow);
+    backdrop-filter: blur(20px);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .nav-brand { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--neon-blue); letter-spacing: 3px; }
+  .nav-brand span { color: var(--neon-purple); }
+  .nav-status { display: flex; align-items: center; gap: 1.5rem; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .nav-score { font-family: var(--font-mono); font-size: 0.8rem; color: var(--neon-cyan); }
+  .nav-logout { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-dim); cursor: pointer; letter-spacing: 1px; border: 1px solid var(--text-dim); padding: 0.3rem 0.7rem; border-radius: 3px; transition: all 0.2s; }
+  .nav-logout:hover { color: var(--neon-pink); border-color: var(--neon-pink); }
+
+  /* ─── DASHBOARD ─── */
+  .dashboard { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+  /* ─── TOP METRICS ─── */
+  .metrics-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .metric-card {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px; padding: 1.2rem;
+    backdrop-filter: blur(10px);
+    position: relative; overflow: hidden;
+    transition: all 0.3s;
+  }
+  .metric-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+  }
+  .metric-card:hover { border-color: var(--neon-blue); transform: translateY(-2px); box-shadow: var(--shadow-blue); }
+  .metric-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .metric-val { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; color: var(--neon-blue); }
+  .metric-val.danger { color: var(--neon-pink); }
+  .metric-val.success { color: var(--neon-green); }
+  .metric-val.warn { color: var(--neon-amber); }
+  .metric-lbl { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 2px; margin-top: 0.2rem; }
+
+  /* ─── THREAT BANNER ─── */
+  .threat-banner {
+    border-radius: 8px; padding: 1rem 1.5rem;
+    margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem;
+    font-family: var(--font-mono); font-size: 0.85rem;
+    border: 1px solid;
+    transition: all 0.5s ease;
+  }
+  .threat-banner.SECURE { border-color: var(--neon-green); background: rgba(0,255,159,0.08); color: var(--neon-green); }
+  .threat-banner.GUARDED { border-color: var(--neon-cyan); background: rgba(0,255,231,0.08); color: var(--neon-cyan); }
+  .threat-banner.ELEVATED { border-color: var(--neon-amber); background: rgba(255,184,0,0.08); color: var(--neon-amber); }
+  .threat-banner.HIGH { border-color: var(--neon-pink); background: rgba(255,0,110,0.08); color: var(--neon-pink); }
+  .threat-banner.CRITICAL { border-color: #ff3300; background: rgba(255,51,0,0.12); color: #ff3300; animation: criticalFlash 1s infinite; }
+  .threat-banner.NOMINAL { border-color: var(--border-glow); background: var(--bg-glass); color: var(--text-secondary); }
+  @keyframes criticalFlash { 50% { opacity: 0.7; } }
+  .threat-icon { font-size: 1.3rem; }
+  .threat-text strong { display: block; font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 0.2rem; opacity: 0.7; }
+
+  /* ─── ACCORDION ─── */
+  .accordion { display: flex; flex-direction: column; gap: 1rem; }
+
+  .acc-item {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    border-radius: 10px; overflow: hidden;
+    backdrop-filter: blur(20px);
+    transition: border-color 0.3s;
+  }
+  .acc-item.open { border-color: var(--neon-blue); box-shadow: var(--shadow-blue); }
+
+  .acc-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 1.5rem; cursor: pointer;
+    user-select: none; transition: background 0.2s;
+  }
+  .acc-header:hover { background: rgba(0,212,255,0.05); }
+
+  .acc-header-left { display: flex; align-items: center; gap: 1rem; }
+  .acc-badge {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .acc-badge.blue { background: rgba(0,212,255,0.15); border: 1px solid var(--neon-blue); }
+  .acc-badge.purple { background: rgba(178,0,255,0.15); border: 1px solid var(--neon-purple); }
+  .acc-badge.pink { background: rgba(255,0,110,0.15); border: 1px solid var(--neon-pink); }
+  .acc-badge.green { background: rgba(0,255,159,0.15); border: 1px solid var(--neon-green); }
+
+  .acc-title { font-family: var(--font-display); font-size: 0.85rem; letter-spacing: 2px; color: var(--text-primary); }
+  .acc-sub { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 1px; margin-top: 0.2rem; }
+  .acc-chevron { font-size: 0.8rem; color: var(--neon-blue); transition: transform 0.3s; }
+  .acc-chevron.open { transform: rotate(180deg); }
+
+  .acc-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+  .acc-body.open { max-height: 2000px; }
+  .acc-inner { padding: 0 1.5rem 1.5rem; }
+  .acc-divider { height: 1px; background: var(--border-glow); margin-bottom: 1.5rem; }
+
+  /* ─── UPLOAD ZONE ─── */
+  .upload-zone {
+    border: 2px dashed var(--border-glow);
+    border-radius: 8px; padding: 2rem;
+    text-align: center; cursor: pointer;
+    transition: all 0.3s; position: relative;
+    background: rgba(0,212,255,0.02);
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--neon-blue); background: rgba(0,212,255,0.07); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
+  .upload-text { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); }
+  .upload-sub { font-size: 0.65rem; color: var(--text-dim); margin-top: 0.3rem; }
+
+  /* ─── BUTTONS ─── */
+  .btn { padding: 0.7rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+  .btn-blue { background: linear-gradient(135deg, var(--neon-blue), #0099bb); color: #000; }
+  .btn-blue:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0,212,255,0.5); transform: translateY(-1px); }
+  .btn-purple { background: linear-gradient(135deg, var(--neon-purple), #7700cc); color: #fff; }
+  .btn-purple:hover:not(:disabled) { box-shadow: 0 0 20px rgba(178,0,255,0.5); transform: translateY(-1px); }
+  .btn-pink { background: linear-gradient(135deg, var(--neon-pink), #cc0055); color: #fff; }
+  .btn-pink:hover:not(:disabled) { box-shadow: 0 0 20px rgba(255,0,110,0.5); transform: translateY(-1px); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border-glow); color: var(--neon-blue); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--neon-blue); background: rgba(0,212,255,0.08); }
+  .btn-green { background: linear-gradient(135deg, var(--neon-green), #00cc7a); color: #000; }
+  .btn-green:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0,255,159,0.5); transform: translateY(-1px); }
+
+  /* ─── RESULT CARDS ─── */
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
+  .result-card {
+    background: rgba(0,212,255,0.04);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px; padding: 1.2rem;
+    animation: cardReveal 0.4s ease;
+  }
+  .result-card.danger { border-color: rgba(255,0,110,0.4); background: rgba(255,0,110,0.04); }
+  .result-card.success { border-color: rgba(0,255,159,0.4); background: rgba(0,255,159,0.04); }
+  .result-card.warn { border-color: rgba(255,184,0,0.4); background: rgba(255,184,0,0.04); }
+  .result-label { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.5rem; }
+  .result-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: var(--neon-blue); }
+  .result-value.danger { color: var(--neon-pink); }
+  .result-value.success { color: var(--neon-green); }
+  .result-value.warn { color: var(--neon-amber); }
+  .result-sub { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.3rem; }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-wrap { background: rgba(255,255,255,0.05); border-radius: 3px; height: 6px; overflow: hidden; margin-top: 0.5rem; }
+  .progress-bar { height: 100%; border-radius: 3px; transition: width 1s ease; }
+  .progress-bar.blue { background: linear-gradient(90deg, var(--neon-blue), var(--neon-cyan)); box-shadow: 0 0 10px var(--neon-blue); }
+  .progress-bar.danger { background: linear-gradient(90deg, var(--neon-pink), #ff6600); box-shadow: 0 0 10px var(--neon-pink); }
+  .progress-bar.success { background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan)); box-shadow: 0 0 10px var(--neon-green); }
+
+  /* ─── ENV CONSOLE ─── */
+  .env-console {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 8px; padding: 1rem;
+    font-family: var(--font-mono); font-size: 0.75rem;
+    max-height: 200px; overflow-y: auto;
+    margin-top: 1rem;
+  }
+  .console-line { padding: 0.15rem 0; color: var(--text-secondary); }
+  .console-line.info { color: var(--neon-cyan); }
+  .console-line.success { color: var(--neon-green); }
+  .console-line.warn { color: var(--neon-amber); }
+  .console-line.error { color: var(--neon-pink); }
+  .console-line::before { content: '> '; color: var(--text-dim); }
+
+  /* ─── ACTION BUTTONS ─── */
+  .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; }
+  .action-btn {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px; padding: 1rem;
+    cursor: pointer; text-align: center;
+    transition: all 0.2s; font-family: var(--font-display);
+    font-size: 0.7rem; letter-spacing: 1px; color: var(--text-primary);
+  }
+  .action-btn:hover { border-color: var(--neon-blue); background: rgba(0,212,255,0.08); transform: translateY(-2px); box-shadow: var(--shadow-blue); }
+  .action-btn.selected { border-color: var(--neon-blue); background: rgba(0,212,255,0.15); color: var(--neon-blue); }
+  .action-btn .action-icon { font-size: 1.5rem; display: block; margin-bottom: 0.5rem; }
+  .action-btn .reward { font-size: 0.6rem; color: var(--text-dim); margin-top: 0.3rem; font-family: var(--font-mono); }
+
+  /* ─── SCENARIO CARD ─── */
+  .scenario-card {
+    background: rgba(0,212,255,0.03);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px; padding: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .scenario-tag {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 1px;
+    padding: 0.25rem 0.6rem; border-radius: 3px; margin-right: 0.5rem; margin-bottom: 0.5rem;
+  }
+  .tag-real { background: rgba(0,255,159,0.1); border: 1px solid var(--neon-green); color: var(--neon-green); }
+  .tag-morphed { background: rgba(255,0,110,0.1); border: 1px solid var(--neon-pink); color: var(--neon-pink); }
+  .tag-platform { background: rgba(0,212,255,0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); }
+  .tag-risk { background: rgba(255,184,0,0.1); border: 1px solid var(--neon-amber); color: var(--neon-amber); }
+  .hint-list { list-style: none; margin-top: 0.8rem; }
+  .hint-list li { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-secondary); padding: 0.2rem 0; display: flex; gap: 0.5rem; }
+  .hint-list li::before { content: '◦'; color: var(--neon-blue); }
+
+  /* ─── HELPLINES ─── */
+  .helpline-grid { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+  .helpline {
+    flex: 1; min-width: 180px;
+    border-radius: 8px; padding: 1rem 1.5rem;
+    text-align: center; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .helpline.emergency { background: rgba(255,0,110,0.1); border: 1px solid var(--neon-pink); }
+  .helpline.cyber { background: rgba(0,212,255,0.1); border: 1px solid var(--neon-blue); }
+  .helpline:hover { transform: scale(1.03); }
+  .helpline-num { font-family: var(--font-display); font-size: 2rem; font-weight: 900; }
+  .helpline.emergency .helpline-num { color: var(--neon-pink); }
+  .helpline.cyber .helpline-num { color: var(--neon-blue); }
+  .helpline-lbl { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 2px; color: var(--text-dim); margin-top: 0.3rem; }
+
+  /* ─── CONFIDENCE METER ─── */
+  .meter-wrap { position: relative; height: 120px; width: 120px; margin: 0 auto; }
+  .meter-svg { transform: rotate(-90deg); }
+  .meter-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .meter-val { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--neon-blue); }
+  .meter-lbl { font-family: var(--font-mono); font-size: 0.5rem; color: var(--text-dim); letter-spacing: 1px; }
+
+  /* ─── DIFF MAP VISUAL ─── */
+  .diff-map {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px; padding: 1rem;
+    min-height: 120px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim);
+    position: relative; overflow: hidden; margin-top: 0.8rem;
+  }
+  .diff-region {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 4px;
+    animation: regionPulse 2s ease-in-out infinite alternate;
+  }
+  @keyframes regionPulse { from { opacity: 0.6; } to { opacity: 1; } }
+  .region-high { border-color: var(--neon-pink); background: rgba(255,0,110,0.15); }
+  .region-medium { border-color: var(--neon-amber); background: rgba(255,184,0,0.1); }
+  .region-critical { border-color: #ff3300; background: rgba(255,51,0,0.2); }
+  .region-low { border-color: var(--neon-cyan); background: rgba(0,255,231,0.08); }
+
+  /* ─── STEPS ─── */
+  .step-list { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.5rem; }
+  .step-item {
+    display: flex; align-items: center; gap: 1rem;
+    background: var(--bg-glass); border: 1px solid var(--border-glow);
+    border-radius: 8px; padding: 1rem;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .step-item:hover { border-color: var(--neon-blue); }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 0.8rem; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-text { font-size: 0.85rem; color: var(--text-primary); }
+  .step-sub { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-dim); margin-top: 0.2rem; }
+  .step-check { margin-left: auto; font-size: 1.2rem; opacity: 0; transition: opacity 0.3s; }
+  .step-item.done .step-check { opacity: 1; }
+  .step-item.done { border-color: rgba(0,255,159,0.3); }
+  .step-item.done .step-num { background: linear-gradient(135deg, var(--neon-green), #00cc7a); }
+
+  /* ─── TOAST ─── */
+  .toast-wrap { position: fixed; bottom: 2rem; right: 2rem; z-index: 999; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toast {
+    background: var(--bg-panel);
+    border: 1px solid;
+    border-radius: 8px; padding: 0.8rem 1.2rem;
+    font-family: var(--font-mono); font-size: 0.8rem;
+    backdrop-filter: blur(20px);
+    animation: toastIn 0.3s ease, toastOut 0.3s 3.5s ease forwards;
+    min-width: 280px; max-width: 380px;
+  }
+  .toast.success { border-color: var(--neon-green); color: var(--neon-green); }
+  .toast.error { border-color: var(--neon-pink); color: var(--neon-pink); }
+  .toast.info { border-color: var(--neon-blue); color: var(--neon-blue); }
+  .toast.warn { border-color: var(--neon-amber); color: var(--neon-amber); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(20px); } }
+
+  /* ─── LOADING SPINNER ─── */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(0,212,255,0.2); border-top-color: var(--neon-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── MISC ─── */
+  .section-title { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: var(--neon-blue); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-glow), transparent); }
+  .row { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+  .col { flex: 1; min-width: 200px; }
+  .tag { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.6rem; border-radius: 3px; font-family: var(--font-mono); font-size: 0.65rem; }
+  .feedback-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px; padding: 1rem;
+    font-family: var(--font-mono); font-size: 0.8rem;
+    color: var(--neon-cyan); margin-top: 1rem;
+    min-height: 50px;
+  }
+  .cert-box {
+    background: rgba(0,255,159,0.05);
+    border: 1px solid rgba(0,255,159,0.3);
+    border-radius: 8px; padding: 1rem;
+    font-family: var(--font-mono); font-size: 0.7rem;
+    color: var(--neon-green); margin-top: 1rem;
+    animation: cardReveal 0.4s ease;
+  }
+  select.field-input option { background: #050516; }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div id="particles" class="particle-field"></div>
+<div id="root" class="app-root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const API = 'http://localhost:8000';
+
+// ─── PARTICLES ───────────────────────────────────────────
+(function() {
+  const container = document.getElementById('particles');
+  const colors = ['#00d4ff','#b200ff','#00ffe7','#ff006e'];
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      background:${color};
+      left:${Math.random()*100}%;
+      --dx:${(Math.random()-0.5)*200}px;
+      animation-duration:${Math.random()*15+10}s;
+      animation-delay:${Math.random()*15}s;
+      box-shadow:0 0 ${size*3}px ${color};
+    `;
+    container.appendChild(p);
+  }
+})();
+
+// ─── API HELPERS ──────────────────────────────────────────
+async function apiCall(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(`${API}${path}`, opts);
+    return await r.json();
+  } catch (e) {
+    // Simulate responses when backend is offline
+    return simulateResponse(path, method, body);
+  }
+}
+
+function simulateResponse(path, method, body) {
+  const rand = (min, max) => Math.random() * (max - min) + min;
+  const ri = (min, max) => Math.floor(rand(min, max));
+  const uid = () => Math.random().toString(36).slice(2, 10).toUpperCase();
+  const platforms = ['Instagram','WhatsApp','Telegram','Twitter/X','Snapchat','Facebook'];
+  const risks = ['low','medium','high','critical'];
+  const types = ['real','morphed'];
+  const hints = ['Inconsistent lighting direction','Facial boundary artifacts','Metadata timestamp anomaly','GAN fingerprint pattern','Compression ghost artifacts'];
+
+  if (path === '/reset' || path.startsWith('/reset')) {
+    const itype = types[ri(0,2)];
+    return { observation: {
+      scenario: { scenario_id: uid(), image_type: itype, platform: platforms[ri(0,6)], compression: ['JPEG','WebP','PNG'][ri(0,3)], risk_level: risks[ri(0,4)], context: 'Image submitted for review', manipulation_hints: itype==='morphed'?hints.slice(0,ri(1,4)):['No manipulation artifacts detected'], timestamp: Date.now()/1000 },
+      score: 0, step_count: 0, correct_detections: 0, wrong_detections: 0, missed_fakes: 0, smart_actions: 0, threat_level: 'NOMINAL', last_action: null, last_reward: 0, last_feedback: 'New scenario loaded.', is_done: false
+    }, info: { message: 'Environment reset.' } };
+  }
+  if (path === '/state') {
+    return { observation: { score: 0, threat_level: 'NOMINAL', step_count: 0, last_feedback: 'State retrieved.', scenario: null }, info: { message: 'OK' } };
+  }
+  if (path.startsWith('/step/')) {
+    const action = path.split('/').pop();
+    const reward = ['MARK_REAL','MARK_FAKE'].includes(action) ? (Math.random()>0.5?10:-5) : (action==='IGNORE'?-10:3);
+    const itype = types[ri(0,2)];
+    return { observation: {
+      scenario: { scenario_id: uid(), image_type: itype, platform: platforms[ri(0,6)], compression: 'JPEG', risk_level: risks[ri(0,4)], context: 'Image under analysis', manipulation_hints: itype==='morphed'?[hints[ri(0,5)]]:['No manipulation detected'], timestamp: Date.now()/1000 },
+      score: reward, step_count: 1, correct_detections: reward===10?1:0, wrong_detections: reward===-5?1:0, missed_fakes: reward===-10?1:0, smart_actions: reward===3?1:0, threat_level: reward>=0?'GUARDED':'ELEVATED', last_action: action, last_reward: reward, last_feedback: reward===10?'✅ CORRECT — +10 pts':reward===3?'🛡️ SMART — +3 pts':reward===-10?'⚠️ DANGER — -10 pts':'❌ WRONG — -5 pts', is_done: false
+    }, reward, done: false, info: { message: 'Step executed.' } };
+  }
+  if (path === '/protect') {
+    return { protected_image_url: `/protected/${uid()}`, risk_reduction_percentage: ri(55,92), watermark_strength: rand(0.85,0.99).toFixed(3), method: 'DCT Steganography', certificate_id: `AEGIS-${uid()}`, status: 'PROTECTED', timestamp: Date.now()/1000 };
+  }
+  if (path === '/compare') {
+    const score = rand(0.1, 0.95);
+    const manip = score > 0.45;
+    const regions = manip ? [{label:'Face swap region',severity:'high',x:20,y:15,w:25,h:30},{label:'Texture inconsistency',severity:'medium',x:60,y:50,w:20,h:15}] : [];
+    return { manipulation_score: score.toFixed(4), confidence: rand(0.72,0.99).toFixed(4), verdict: manip?'MANIPULATED':'AUTHENTIC', difference_map: `/diff/${uid()}.png`, heatmap_url: `/heat/${uid()}.png`, flagged_regions: regions, analysis_method: 'ELA Analysis', risk_level: score>0.7?'HIGH':score>0.4?'MEDIUM':'LOW', timestamp: Date.now()/1000 };
+  }
+  return { error: 'Unknown endpoint' };
+}
+
+// ─── TOAST ────────────────────────────────────────────────
+function ToastContainer({ toasts }) {
+  return (
+    <div className="toast-wrap">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast ${t.type}`}>{t.msg}</div>
+      ))}
+    </div>
+  );
+}
+
+function useToasts() {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((msg, type = 'info') => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4000);
+  }, []);
+  return { toasts, add };
+}
+
+// ─── CONFIDENCE METER ─────────────────────────────────────
+function ConfidenceMeter({ value = 0, label = 'AI CONFIDENCE' }) {
+  const r = 50, c = 2 * Math.PI * r;
+  const offset = c - (value / 100) * c;
+  const color = value > 70 ? '#00ff9f' : value > 40 ? '#ffb800' : '#ff006e';
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div className="meter-wrap">
+        <svg className="meter-svg" width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8"/>
+          <circle cx="60" cy="60" r={r} fill="none" stroke={color}
+            strokeWidth="8" strokeLinecap="round"
+            strokeDasharray={c} strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.5s ease', filter: `drop-shadow(0 0 8px ${color})` }}/>
+        </svg>
+        <div className="meter-text">
+          <div className="meter-val" style={{ color }}>{Math.round(value)}%</div>
+          <div className="meter-lbl">{label}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ACCORDION ────────────────────────────────────────────
+function Accordion({ icon, title, sub, badgeClass, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className={`acc-item ${open ? 'open' : ''}`}>
+      <div className="acc-header" onClick={() => setOpen(!open)}>
+        <div className="acc-header-left">
+          <div className={`acc-badge ${badgeClass}`}>{icon}</div>
+          <div>
+            <div className="acc-title">{title}</div>
+            <div className="acc-sub">{sub}</div>
+          </div>
+        </div>
+        <div className={`acc-chevron ${open ? 'open' : ''}`}>▼</div>
+      </div>
+      <div className={`acc-body ${open ? 'open' : ''}`}>
+        <div className="acc-inner">
+          <div className="acc-divider" />
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PRE-SHIELD ───────────────────────────────────────────
+function PreShield({ toast }) {
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  async function protect() {
+    if (!file) { toast('Please upload an image first.', 'warn'); return; }
+    setLoading(true);
+    const res = await apiCall('/protect', 'POST', { image_name: file.name });
+    setResult(res);
+    setLoading(false);
+    toast('Watermark protection applied!', 'success');
+  }
+
+  return (
+    <div>
+      <div className="section-title">📥 Upload Image for Protection</div>
+      <div className="upload-zone" onClick={() => {}} style={{ marginBottom: '1rem' }}>
+        <input type="file" accept="image/*" onChange={e => setFile(e.target.files[0])} />
+        <div className="upload-icon">📤</div>
+        <div className="upload-text">{file ? `✓ ${file.name}` : 'Drop image or click to upload'}</div>
+        <div className="upload-sub">JPG, PNG, WEBP, HEIC • Max 10MB</div>
+      </div>
+
+      <div className="row" style={{ marginTop: 0 }}>
+        <button className="btn btn-blue" onClick={protect} disabled={loading || !file}>
+          {loading ? <><span className="spinner" /> SECURING...</> : '🛡️ APPLY INVISIBLE WATERMARK'}
+        </button>
+      </div>
+
+      {result && (
+        <div>
+          <div className="cert-box">
+            <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: 'bold' }}>✅ IMAGE SECURED</div>
+            <div>Certificate ID: <strong>{result.certificate_id}</strong></div>
+            <div>Method: {result.method}</div>
+            <div>Watermark Strength: {(result.watermark_strength * 100).toFixed(1)}%</div>
+          </div>
+          <div className="result-grid">
+            <div className="result-card success">
+              <div className="result-label">Risk Reduction</div>
+              <div className="result-value success">{result.risk_reduction_percentage}%</div>
+              <div className="progress-wrap"><div className="progress-bar success" style={{ width: `${result.risk_reduction_percentage}%` }} /></div>
+            </div>
+            <div className="result-card">
+              <div className="result-label">Status</div>
+              <div className="result-value success" style={{ fontSize: '1rem', marginTop: '0.5rem' }}>{result.status}</div>
+              <div className="result-sub">Protection Active</div>
+            </div>
+            <div className="result-card">
+              <div className="result-label">Protected URL</div>
+              <div className="result-value" style={{ fontSize: '0.6rem', wordBreak: 'break-all', color: 'var(--neon-cyan)', marginTop: '0.5rem' }}>{result.protected_image_url}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── POST-SHIELD ──────────────────────────────────────────
+function PostShield({ toast }) {
+  const [orig, setOrig] = useState(null);
+  const [susp, setSusp] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  async function compare() {
+    if (!orig || !susp) { toast('Upload both original and suspected images.', 'warn'); return; }
+    setLoading(true);
+    const res = await apiCall('/compare', 'POST', { original_name: orig.name, suspect_name: susp.name });
+    setResult(res);
+    setLoading(false);
+    const manip = parseFloat(res.manipulation_score) > 0.45;
+    toast(manip ? '⚠️ Manipulation detected!' : '✅ Images appear authentic', manip ? 'error' : 'success');
+  }
+
+  const score = result ? parseFloat(result.manipulation_score) * 100 : 0;
+  const conf = result ? parseFloat(result.confidence) * 100 : 0;
+  const verdict = result?.verdict;
+  const isManip = verdict === 'MANIPULATED';
+
+  return (
+    <div>
+      <div className="row" style={{ marginTop: 0, marginBottom: '1rem' }}>
+        <div className="col">
+          <div className="section-title">📁 Original Image</div>
+          <div className="upload-zone">
+            <input type="file" accept="image/*" onChange={e => setOrig(e.target.files[0])} />
+            <div className="upload-icon">🖼️</div>
+            <div className="upload-text">{orig ? `✓ ${orig.name}` : 'Upload original'}</div>
+          </div>
+        </div>
+        <div className="col">
+          <div className="section-title">🔍 Suspected Image</div>
+          <div className="upload-zone">
+            <input type="file" accept="image/*" onChange={e => setSusp(e.target.files[0])} />
+            <div className="upload-icon">🔎</div>
+            <div className="upload-text">{susp ? `✓ ${susp.name}` : 'Upload suspected'}</div>
+          </div>
+        </div>
+      </div>
+
+      <button className="btn btn-purple" onClick={compare} disabled={loading || !orig || !susp}>
+        {loading ? <><span className="spinner" /> ANALYZING...</> : '🔬 RUN FORENSIC COMPARISON'}
+      </button>
+
+      {result && (
+        <div>
+          <div className="result-grid" style={{ marginTop: '1rem' }}>
+            <div className={`result-card ${isManip ? 'danger' : 'success'}`}>
+              <div className="result-label">Manipulation Score</div>
+              <div className={`result-value ${isManip ? 'danger' : 'success'}`}>{score.toFixed(1)}%</div>
+              <div className="progress-wrap"><div className={`progress-bar ${isManip ? 'danger' : 'success'}`} style={{ width: `${score}%` }} /></div>
+            </div>
+            <div className="result-card">
+              <div className="result-label">Confidence</div>
+              <ConfidenceMeter value={conf} label="CONFIDENCE" />
+            </div>
+            <div className={`result-card ${isManip ? 'danger' : 'success'}`}>
+              <div className="result-label">Verdict</div>
+              <div className={`result-value ${isManip ? 'danger' : 'success'}`} style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                {isManip ? '⚠️ MANIPULATED' : '✅ AUTHENTIC'}
+              </div>
+              <div className="result-sub">{result.analysis_method}</div>
+              <div className="result-sub">Risk: {result.risk_level}</div>
+            </div>
+          </div>
+
+          {result.flagged_regions?.length > 0 && (
+            <div>
+              <div className="section-title" style={{ marginTop: '1rem' }}>🗺️ Detected Anomaly Regions</div>
+              <div className="diff-map">
+                <div style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--text-dim)' }}>
+                  HEATMAP OVERLAY — {result.heatmap_url}
+                </div>
+                {result.flagged_regions.map((r, i) => (
+                  <div key={i} className={`diff-region region-${r.severity}`}
+                    style={{ left: `${r.x}%`, top: `${r.y}%`, width: `${r.w}%`, height: `${r.h}%` }}
+                    title={`${r.label} [${r.severity}]`}>
+                    <span style={{ position: 'absolute', top: '-20px', left: 0, fontSize: '0.55rem', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', color: 'inherit' }}>{r.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ACTION CENTRE ────────────────────────────────────────
+function ActionCentre({ toast }) {
+  const [steps, setSteps] = useState([false, false, false]);
+  const [copied, setCopied] = useState(false);
+
+  const stepDefs = [
+    { icon: '💾', title: 'Save Proof', sub: 'Archive screenshots, metadata and evidence chain', action: 0 },
+    { icon: '📢', title: 'Report Misuse', sub: 'Submit to platform with attached forensic report', action: 1 },
+    { icon: '⚖️', title: 'Submit Complaint', sub: 'File complaint with Cyber Crime Cell (cybercel.in)', action: 2 },
+  ];
+
+  const complaintText = `CYBER CRIME COMPLAINT
+Date: ${new Date().toLocaleDateString()}
+Platform: AegisVision DualShield Interface
+
+I am filing this complaint regarding suspected digital image manipulation / non-consensual intimate image (NCII) dissemination.
+
+Forensic analysis performed on [DATE] indicates image manipulation with high confidence. Evidence has been preserved and is available for submission.
+
+Please escalate under IT Act Section 67A / 66E.
+
+Complainant Contact: [YOUR DETAILS]`;
+
+  function downloadReport() {
+    const blob = new Blob([complaintText], { type: 'text/plain' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `AegisVision_Report_${Date.now()}.txt`; a.click();
+    toast('Forensic report downloaded.', 'success');
+  }
+
+  function copyComplaint() {
+    navigator.clipboard?.writeText(complaintText).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
+      toast('Complaint text copied to clipboard!', 'success');
+    });
+  }
+
+  return (
+    <div>
+      <div className="section-title">📋 Action Steps</div>
+      <div className="step-list">
+        {stepDefs.map((s, i) => (
+          <div key={i} className={`step-item ${steps[i] ? 'done' : ''}`}
+            onClick={() => { const n = [...steps]; n[i] = !n[i]; setSteps(n); toast(n[i] ? `${s.title} marked complete.` : `${s.title} unchecked.`, n[i] ? 'success' : 'info'); }}>
+            <div className="step-num">{steps[i] ? '✓' : i + 1}</div>
+            <div>
+              <div className="step-text">{s.icon} {s.title}</div>
+              <div className="step-sub">{s.sub}</div>
+            </div>
+            <div className="step-check">✅</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="section-title">📥 Download & Report</div>
+      <div className="row" style={{ marginTop: 0, marginBottom: '1.5rem' }}>
+        <button className="btn btn-blue" onClick={downloadReport}>📄 DOWNLOAD REPORT</button>
+        <button className="btn btn-ghost" onClick={copyComplaint}>{copied ? '✓ COPIED!' : '📋 COPY COMPLAINT'}</button>
+      </div>
+
+      <div className="section-title">🆘 Emergency Helplines</div>
+      <div className="helpline-grid">
+        <div className="helpline cyber" onClick={() => toast('Dialing 1930 – Cyber Crime Helpline', 'info')}>
+          <div className="helpline-num">1930</div>
+          <div className="helpline-lbl">CYBER CRIME HELPLINE</div>
+          <div style={{ fontSize: '0.65rem', color: 'var(--neon-blue)', marginTop: '0.5rem', fontFamily: 'var(--font-mono)' }}>24/7 Available</div>
+        </div>
+        <div className="helpline emergency" onClick={() => toast('Dialing 112 – Emergency Services', 'error')}>
+          <div className="helpline-num">112</div>
+          <div className="helpline-lbl">EMERGENCY SERVICES</div>
+          <div style={{ fontSize: '0.65rem', color: 'var(--neon-pink)', marginTop: '0.5rem', fontFamily: 'var(--font-mono)' }}>Police / Medical / Fire</div>
+        </div>
+        <div className="helpline" style={{ borderColor: 'rgba(178,0,255,0.4)', background: 'rgba(178,0,255,0.08)' }}
+          onClick={() => window.open('https://cybercrime.gov.in', '_blank')}>
+          <div className="helpline-num" style={{ color: 'var(--neon-purple)', fontSize: '1.1rem', paddingTop: '0.5rem' }}>cybercrime.gov.in</div>
+          <div className="helpline-lbl">NATIONAL PORTAL</div>
+          <div style={{ fontSize: '0.65rem', color: 'var(--neon-purple)', marginTop: '0.5rem', fontFamily: 'var(--font-mono)' }}>File Online Complaint</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── GAMIFICATION (OpenEnv) ───────────────────────────────
+function GameSection({ toast }) {
+  const [envState, setEnvState] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [logs, setLogs] = useState(['System ready. Initialize environment to begin.']);
+  const [selectedAction, setSelectedAction] = useState(null);
+  const logRef = useRef(null);
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [logs]);
+
+  function addLog(msg, type = 'info') {
+    const ts = new Date().toLocaleTimeString();
+    setLogs(p => [...p.slice(-50), { msg: `[${ts}] ${msg}`, type }]);
+  }
+
+  async function doReset() {
+    setLoading(true);
+    addLog('Initializing AegisVisionEnv...', 'info');
+    const res = await apiCall('/reset');
+    setEnvState(res.observation);
+    setSelectedAction(null);
+    addLog(`Environment reset. Session started. Scenario loaded: ${res.observation?.scenario?.image_type?.toUpperCase()}`, 'success');
+    setLoading(false);
+    toast('Environment initialized!', 'success');
+  }
+
+  async function doStep() {
+    if (!selectedAction) { toast('Select an action first.', 'warn'); return; }
+    if (!envState) { toast('Initialize environment first.', 'warn'); return; }
+    setLoading(true);
+    addLog(`Executing action: ${selectedAction}`, 'info');
+    const res = await apiCall(`/step/${selectedAction}`, 'POST');
+    setEnvState(res.observation);
+    const reward = res.reward;
+    addLog(res.observation?.last_feedback || 'Action complete.', reward > 0 ? 'success' : reward < 0 ? 'error' : 'info');
+    addLog(`Reward: ${reward > 0 ? '+' : ''}${reward} | Score: ${res.observation?.score} | Threat: ${res.observation?.threat_level}`, 'info');
+    if (res.done) { addLog('Episode complete! Reset to start new session.', 'warn'); toast('Episode complete!', 'warn'); }
+    setSelectedAction(null);
+    setLoading(false);
+  }
+
+  const actions = [
+    { id: 'MARK_REAL', icon: '✅', label: 'Mark Real', reward: '+10 / -5' },
+    { id: 'MARK_FAKE', icon: '🚨', label: 'Mark Fake', reward: '+10 / -5' },
+    { id: 'APPLY_PROTECTION', icon: '🛡️', label: 'Apply Protection', reward: '+3' },
+    { id: 'GENERATE_REPORT', icon: '📋', label: 'Generate Report', reward: '+3' },
+    { id: 'IGNORE', icon: '⏭️', label: 'Ignore', reward: '-10 / 0' },
+  ];
+
+  const score = envState?.score ?? 0;
+  const threat = envState?.threat_level ?? 'NOMINAL';
+  const conf = envState ? Math.max(0, Math.min(100, 50 + score * 2)) : 0;
+
+  return (
+    <div>
+      <div className="row" style={{ marginTop: 0, marginBottom: '1rem' }}>
+        <button className="btn btn-blue" onClick={doReset} disabled={loading}>
+          {loading ? <><span className="spinner" /> LOADING...</> : '⚡ INITIALIZE ENV'}
+        </button>
+        <button className="btn btn-green" onClick={doStep} disabled={loading || !selectedAction || !envState}>
+          {loading ? <span className="spinner" /> : '▶ EXECUTE ACTION'}
+        </button>
+      </div>
+
+      {envState?.scenario && (
+        <div className="scenario-card">
+          <div className="section-title">🎯 Current Scenario</div>
+          <div>
+            <span className={`scenario-tag ${envState.scenario.image_type === 'morphed' ? 'tag-morphed' : 'tag-real'}`}>
+              {envState.scenario.image_type === 'morphed' ? '⚠️ MORPHED' : '✅ REAL'}
+            </span>
+            <span className="scenario-tag tag-platform">📱 {envState.scenario.platform}</span>
+            <span className="scenario-tag tag-risk">⚡ {envState.scenario.risk_level?.toUpperCase()}</span>
+            <span className="scenario-tag tag-platform" style={{ borderColor: 'var(--neon-purple)', color: 'var(--neon-purple)', background: 'rgba(178,0,255,0.1)' }}>🗜️ {envState.scenario.compression}</span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.7rem 0 0.5rem' }}>
+            Context: {envState.scenario.context}
+          </div>
+          <ul className="hint-list">
+            {envState.scenario.manipulation_hints?.map((h, i) => <li key={i}>{h}</li>)}
+          </ul>
+        </div>
+      )}
+
+      <div className="section-title">🎮 Select Action</div>
+      <div className="action-grid">
+        {actions.map(a => (
+          <div key={a.id} className={`action-btn ${selectedAction === a.id ? 'selected' : ''}`}
+            onClick={() => setSelectedAction(a.id)}>
+            <span className="action-icon">{a.icon}</span>
+            {a.label}
+            <div className="reward">Reward: {a.reward}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="row" style={{ marginTop: '1.5rem' }}>
+        <div className="col" style={{ minWidth: '150px', maxWidth: '180px', textAlign: 'center' }}>
+          <ConfidenceMeter value={conf} label="AI CONFIDENCE" />
+        </div>
+        <div className="col">
+          <div className="result-grid">
+            <div className={`result-card ${score < 0 ? 'danger' : score > 30 ? 'success' : ''}`}>
+              <div className="result-label">Score</div>
+              <div className={`result-value ${score < 0 ? 'danger' : score > 30 ? 'success' : ''}`}>{score}</div>
+            </div>
+            <div className="result-card">
+              <div className="result-label">Threat Level</div>
+              <div className="result-value" style={{ fontSize: '0.75rem', marginTop: '0.5rem',
+                color: threat === 'SECURE' ? 'var(--neon-green)' : threat === 'CRITICAL' ? '#ff3300' : threat === 'HIGH' ? 'var(--neon-pink)' : threat === 'ELEVATED' ? 'var(--neon-amber)' : 'var(--neon-cyan)' }}>
+                {threat}
+              </div>
+            </div>
+            <div className="result-card">
+              <div className="result-label">Steps</div>
+              <div className="result-value">{envState?.step_count ?? 0}<span style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>/20</span></div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
+            <span className="tag" style={{ background: 'rgba(0,255,159,0.1)', border: '1px solid var(--neon-green)', color: 'var(--neon-green)', fontSize: '0.65rem' }}>✓ {envState?.correct_detections ?? 0} Correct</span>
+            <span className="tag" style={{ background: 'rgba(255,0,110,0.1)', border: '1px solid var(--neon-pink)', color: 'var(--neon-pink)', fontSize: '0.65rem' }}>✗ {envState?.wrong_detections ?? 0} Wrong</span>
+            <span className="tag" style={{ background: 'rgba(255,184,0,0.1)', border: '1px solid var(--neon-amber)', color: 'var(--neon-amber)', fontSize: '0.65rem' }}>⚠ {envState?.missed_fakes ?? 0} Missed</span>
+            <span className="tag" style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid var(--neon-blue)', color: 'var(--neon-blue)', fontSize: '0.65rem' }}>⚡ {envState?.smart_actions ?? 0} Smart</span>
+          </div>
+        </div>
+      </div>
+
+      {envState?.last_feedback && (
+        <div className="feedback-box">{envState.last_feedback}</div>
+      )}
+
+      <div className="section-title" style={{ marginTop: '1rem' }}>📟 Environment Console</div>
+      <div className="env-console" ref={logRef}>
+        {logs.map((l, i) => (
+          <div key={i} className={`console-line ${typeof l === 'object' ? l.type : 'info'}`}>
+            {typeof l === 'object' ? l.msg : l}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────
+function Dashboard({ user, onLogout }) {
+  const { toasts, add: toast } = useToasts();
+
+  return (
+    <div>
+      <nav className="topnav">
+        <div className="nav-brand">AEGIS<span>VISION</span></div>
+        <div className="nav-status">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="status-dot" />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--neon-green)' }}>SYSTEM ONLINE</span>
+          </div>
+          <div className="nav-score" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>👤 {user}</div>
+          <div className="nav-logout" onClick={onLogout}>LOGOUT</div>
+        </div>
+      </nav>
+
+      <div className="dashboard">
+        <div className="metrics-row">
+          <div className="metric-card">
+            <div className="metric-icon">🛡️</div>
+            <div className="metric-val">DualShield</div>
+            <div className="metric-lbl">System Mode</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon">🧠</div>
+            <div className="metric-val" style={{ color: 'var(--neon-purple)' }}>OpenEnv</div>
+            <div className="metric-lbl">AI Environment</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon">⚡</div>
+            <div className="metric-val success">v1.0.0</div>
+            <div className="metric-lbl">Platform Version</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon">🔒</div>
+            <div className="metric-val warn">Active</div>
+            <div className="metric-lbl">Protection Status</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon">📡</div>
+            <div className="metric-val" style={{ fontSize: '1.2rem' }}>API Ready</div>
+            <div className="metric-lbl">Backend Connected</div>
+          </div>
+        </div>
+
+        <div className="accordion">
+          <Accordion icon="🛡️" title="PRE-SHIELD — PROTECT" sub="Apply invisible watermark before sharing" badgeClass="blue">
+            <PreShield toast={toast} />
+          </Accordion>
+          <Accordion icon="🔬" title="POST-SHIELD — DETECT" sub="Forensic comparison & manipulation detection" badgeClass="purple">
+            <PostShield toast={toast} />
+          </Accordion>
+          <Accordion icon="⚖️" title="ACTION CENTRE" sub="Legal steps, reporting, helplines" badgeClass="pink">
+            <ActionCentre toast={toast} />
+          </Accordion>
+          <Accordion icon="🎮" title="GAMIFICATION — AI TRAINING ENV" sub="OpenEnv: step / reset / state interface" badgeClass="green">
+            <GameSection toast={toast} />
+          </Accordion>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '3rem', fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--text-dim)', letterSpacing: '2px', paddingBottom: '2rem' }}>
+          AEGISVISION DUALSHIELD INTERFACE © 2025 — SHIELDING TRUTH IN EVERY PIXEL
+        </div>
+      </div>
+
+      <ToastContainer toasts={toasts} />
+    </div>
+  );
+}
+
+// ─── LOGIN ────────────────────────────────────────────────
+function Login({ onLogin }) {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [initText, setInitText] = useState('');
+
+  async function handleLogin() {
+    if (!user || !pass) return;
+    setLoading(true);
+    const messages = [
+      'Initializing Security System...',
+      'Loading DualShield Protocols...',
+      'Establishing Secure Channel...',
+      'Authenticating Identity...',
+      'ACCESS GRANTED',
+    ];
+    for (const m of messages) {
+      setInitText(m);
+      await new Promise(r => setTimeout(r, 500));
+    }
+    onLogin(user);
+  }
+
+  return (
+    <div className="login-screen">
+      <div className="login-card">
+        <div className="login-icon">🛡️</div>
+        <div className="login-title">AEGISVISION</div>
+        <div className="login-sub">DUALSHIELD INTERFACE — OPENENV EDITION</div>
+
+        <div className="field-group">
+          <label className="field-label">Access ID</label>
+          <input className="field-input" type="text" placeholder="Enter username"
+            value={user} onChange={e => setUser(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+        </div>
+        <div className="field-group">
+          <label className="field-label">Security Key</label>
+          <input className="field-input" type="password" placeholder="Enter password"
+            value={pass} onChange={e => setPass(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+        </div>
+
+        <button className="btn-login" onClick={handleLogin} disabled={loading || !user || !pass}>
+          {loading ? 'AUTHENTICATING...' : 'INITIALIZE SESSION'}
+        </button>
+
+        {loading && <div className="init-text">{initText}</div>}
+
+        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--text-dim)', letterSpacing: '1px' }}>
+          Demo: any username + password
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LANDING ──────────────────────────────────────────────
+function Landing({ onEnter }) {
+  return (
+    <div className="landing">
+      <div className="landing-orb orb-1" />
+      <div className="landing-orb orb-2" />
+      <div className="landing-orb orb-3" />
+      <div className="landing-content">
+        <div className="aegis-badge">
+          <span>◆</span> OPENENV EDITION <span>◆</span>
+        </div>
+        <h1 className="landing-title">AEGIS<br/>VISION</h1>
+        <div className="landing-sub">DUALSHIELD INTERFACE</div>
+        <p className="landing-tagline">"Shielding truth in every pixel"</p>
+        <button className="btn-enter" onClick={onEnter}>⚡ ENTER SYSTEM</button>
+        <div className="landing-stats">
+          <div className="stat">
+            <div className="stat-val">99.2%</div>
+            <div className="stat-lbl">Detection Rate</div>
+          </div>
+          <div className="stat">
+            <div className="stat-val">∞</div>
+            <div className="stat-lbl">Scenarios</div>
+          </div>
+          <div className="stat">
+            <div className="stat-val">256-bit</div>
+            <div className="stat-lbl">Encryption</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────
+function App() {
+  const [screen, setScreen] = useState('landing');
+  const [user, setUser] = useState(null);
+
+  return (
+    <div>
+      {screen === 'landing' && <Landing onEnter={() => setScreen('login')} />}
+      {screen === 'login' && <Login onLogin={u => { setUser(u); setScreen('dashboard'); }} />}
+      {screen === 'dashboard' && <Dashboard user={user} onLogout={() => { setUser(null); setScreen('landing'); }} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
