@@ -3,12 +3,14 @@ AegisVision – DualShield Interface
 FastAPI Backend with OpenEnv integration
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
+import os
 
 from env import AegisVisionEnv, Action
 
@@ -27,8 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global environment instance (per-server session)
-# In production, use session-keyed instances
+# Global environment instance
 env = AegisVisionEnv()
 
 
@@ -51,30 +52,18 @@ class CompareRequest(BaseModel):
 
 @app.get("/reset", tags=["OpenEnv"])
 async def reset():
-    """Reset the AI environment and generate a fresh scenario."""
     result = env.reset()
     return JSONResponse(content=result)
 
 
 @app.get("/state", tags=["OpenEnv"])
 async def state():
-    """Return current environment state."""
     result = env.state()
     return JSONResponse(content=result)
 
 
 @app.post("/step/{action}", tags=["OpenEnv"])
 async def step(action: str):
-    """
-    Execute an action in the environment.
-
-    Valid actions:
-    - MARK_REAL
-    - MARK_FAKE
-    - APPLY_PROTECTION
-    - GENERATE_REPORT
-    - IGNORE
-    """
     valid_actions = [a.value for a in Action]
     if action.upper() not in valid_actions:
         raise HTTPException(
@@ -89,19 +78,12 @@ async def step(action: str):
 
 @app.post("/protect", tags=["Shield"])
 async def protect(request: ProtectRequest):
-    """
-    Simulate watermark protection on an uploaded image.
-    Returns protected image URL and risk reduction percentage.
-    """
     result = env.protect_image(image_name=request.image_name or "image")
     return JSONResponse(content=result)
 
 
 @app.post("/protect/upload", tags=["Shield"])
 async def protect_upload(file: UploadFile = File(...)):
-    """
-    Accept file upload and simulate watermark protection.
-    """
     result = env.protect_image(image_name=file.filename or "uploaded_image")
     return JSONResponse(content=result)
 
@@ -110,10 +92,6 @@ async def protect_upload(file: UploadFile = File(...)):
 
 @app.post("/compare", tags=["Shield"])
 async def compare(request: CompareRequest):
-    """
-    Simulate forensic comparison between original and suspected image.
-    Returns manipulation score, confidence, and difference map.
-    """
     result = env.compare_images(
         original_name=request.original_name or "original",
         suspect_name=request.suspect_name or "suspect"
@@ -126,9 +104,6 @@ async def compare_upload(
     original: UploadFile = File(...),
     suspect: UploadFile = File(...)
 ):
-    """
-    Accept two file uploads and perform forensic comparison.
-    """
     result = env.compare_images(
         original_name=original.filename or "original",
         suspect_name=suspect.filename or "suspect"
@@ -138,22 +113,27 @@ async def compare_upload(
 
 # ---------- Health Check ----------
 
-@app.get("/", tags=["System"])
-async def root():
-    return {
-        "system": "AegisVision DualShield Interface",
-        "status": "ONLINE",
-        "version": "1.0.0",
-        "env": "OpenEnv Edition",
-        "endpoints": ["/reset", "/state", "/step/{action}", "/protect", "/compare"]
-    }
-
-
 @app.get("/health", tags=["System"])
 async def health():
     return {"status": "healthy", "env_initialized": env._state.scenario is not None}
 
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+# ---------- Serve Frontend ----------
+# This must be LAST — it catches all remaining routes
+if os.path.exists("frontend"):
+    app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+else:
+    @app.get("/")
+    async def root():
+        return {
+            "system": "AegisVision DualShield Interface",
+            "status": "ONLINE",
+            "version": "1.0.0",
+            "note": "Frontend not found. Place index.html in /frontend folder.",
+            "endpoints": ["/reset", "/state", "/step/{action}", "/protect", "/compare"]
+        }
 
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
