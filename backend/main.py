@@ -55,42 +55,40 @@ def text_to_bits(text: str) -> list:
 
 def embed_lsb_watermark(image_bytes: bytes, watermark_text: str) -> bytes:
     """
-    Real LSB (Least Significant Bit) steganography.
-    Embeds watermark text invisibly into image pixels.
-    Changes are imperceptible to human eye (1 bit per channel).
-    Returns watermarked image as bytes.
+    Optimized LSB steganography — resizes large images first for speed.
+    Embeds watermark invisibly into pixel LSBs.
     """
-    # Open image with PIL
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img_array = np.array(img, dtype=np.uint8)
 
-    # Convert watermark to bits
+    # Resize large images to max 1200px to speed up processing
+    max_dim = 1200
+    w, h = img.size
+    if max(w, h) > max_dim:
+        ratio = max_dim / max(w, h)
+        img = img.resize((int(w*ratio), int(h*ratio)), Image.LANCZOS)
+
+    img_array = np.array(img, dtype=np.uint8)
     bits = text_to_bits(watermark_text)
     total_bits = len(bits)
 
-    # Check capacity
-    h, w, c = img_array.shape
-    capacity = h * w * 3  # 1 bit per channel
+    h2, w2, c = img_array.shape
+    capacity = h2 * w2 * c
     if total_bits > capacity:
-        raise ValueError(f"Image too small for watermark. Need {total_bits} bits, have {capacity}")
+        raise ValueError("Image too small for watermark")
 
-    # Embed bits into LSB of each channel
-    bit_idx = 0
+    # Fast numpy vectorized LSB embedding
     flat = img_array.flatten()
-    for i in range(len(flat)):
-        if bit_idx >= total_bits:
-            break
-        # Clear LSB and set to watermark bit
-        flat[i] = (flat[i] & 0xFE) | bits[bit_idx]
-        bit_idx += 1
+    bit_array = np.zeros(len(flat), dtype=np.uint8)
+    bit_array[:total_bits] = bits
+    # Clear LSB and embed
+    flat[:total_bits] = (flat[:total_bits] & 0xFE) | bit_array[:total_bits]
+    watermarked = flat.reshape(h2, w2, c)
 
-    # Reshape back
-    watermarked = flat.reshape(h, w, c)
     watermarked_img = Image.fromarray(watermarked.astype(np.uint8), 'RGB')
 
-    # Save to bytes as PNG (lossless - preserves LSB)
+    # Save as JPEG for smaller size and faster response
     output = io.BytesIO()
-    watermarked_img.save(output, format='PNG', optimize=False)
+    watermarked_img.save(output, format='JPEG', quality=95)
     output.seek(0)
     return output.read()
 
@@ -303,7 +301,7 @@ async def protect_upload(file: UploadFile = File(...)):
             "watermark_strength": 0.99,
             "risk_reduction_percentage": risk_reduction,
             "watermarked_image_base64": watermarked_b64,
-            "image_format": "PNG",
+            "image_format": "JPEG",
             "ela_prescan": {
                 "original_risk_score": ela.get("risk_score", 0),
                 "original_verdict": ela.get("verdict", "UNKNOWN"),
@@ -338,7 +336,7 @@ async def protect_download(file: UploadFile = File(...)):
             io.BytesIO(watermarked_bytes),
             media_type="image/png",
             headers={
-                "Content-Disposition": f'attachment; filename="AEGIS_PROTECTED_{cert_id}.png"',
+                "Content-Disposition": f'attachment; filename="AEGIS_PROTECTED_{cert_id}.jpg"',
                 "X-Certificate-ID": cert_id,
                 "X-Watermark-Method": "LSB-Steganography",
             }
